@@ -112,7 +112,7 @@ const Status BufMgr::readPage(File* file, const int PageNo, Page*& page)
         status = hashTable->insert(file, PageNo, frameNo);
         if(status != OK) { // Check insertion and handle error if present
             // Release allocated buffer frame
-            releaseBuf(frameNo);
+            bufTable[frameNo].Clear();
             // Return error status
             return status;
         }
@@ -185,7 +185,7 @@ const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page)
     status = hashTable->insert(file, pageNo, frameNo);
     if(status != OK) { // Check insertion and handle error if present
         // Release allocated buffer frame
-        releaseBuf(frameNo);
+        bufTable[frameNo].Clear();
         // Return error status
         return status;
     }
