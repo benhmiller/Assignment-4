@@ -96,13 +96,35 @@ const Status BufMgr::unPinPage(File* file, const int PageNo,
 
 const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page) 
 {
+    // Allocate empty page in specified file
+    Status status = file->allocatePage(pageNo);
+    if(status != OK) { // Check allocation and return error if present
+        return status;
+    }
 
+    // Allocate a buffer pool frame for page
+    int frameNo;
+    status = allocBuf(frameNo);
+    if(status != OK) { // Check allocation and return error if present
+        return status;
+    }
 
+    // Insert entry into hash table
+    status = hashTable->insert(file, pageNo, frameNo);
+    if(status != OK) { // Check insertion and handle error if present
+        // Release allocated buffer frame
+        releaseBuf(frameNo);
+        // Return error status
+        return status;
+    }
 
+    // Invoke Set() to set up frame
+    bufTable[frameNo].Set(file, pageNo);
 
+    // Set page pointer to the allocated buffer frame for the page
+    page = &bufPool[frameNo];
 
-
-
+    return OK;
 }
 
 const Status BufMgr::disposePage(File* file, const int pageNo) 
