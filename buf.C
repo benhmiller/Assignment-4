@@ -94,6 +94,24 @@ const Status BufMgr::unPinPage(File* file, const int PageNo,
 
 }
 
+/* Function responsible for allocating an empty page in a specified file,
+ * then inserting the page into the buffer pool and setting any necessary
+ * data structures to manage the allocated page in the buffer manager.
+ * 
+ * INPUTS:
+ *    -   File* file: pointer to the file object in which the empty page will be allocated.
+ *    -   int& pageNo: reference to integer variable where the page number of newly allocated
+ *                     page will be stored.
+ *    -   Page*&: Reference to a pointer to a page object; upon successful execution, will point
+ *                to the allocated buffer frame for the page.
+ * 
+ * OUTPUTS:
+ *    -   Status: enumeration representing the status of the allocation process. Possible values:
+ *           -   OK: Successful allocation
+ *           -   UNIXERR: Error occurred at Unix level during allocation
+ *           -   BUFFEREXCEEDED: all buffer frames currently pinned (no buffer frame available)
+ *           -   HASHTBLERROR: error occurred while inserting entry in hash table
+ */
 const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page) 
 {
     // Allocate empty page in specified file
