@@ -73,20 +73,74 @@ const Status BufMgr::allocBuf(int & frame)
 
 }
 
-	
+/* Function responsible for reading a specific page from the buffer pool.
+ * If the page does not already exist in the pool, then the function handles
+ * the reading and copying from disk as well as the updating of any necessary
+ * data structures to manage the allocated page in the buffer manager.
+ * 
+ * INPUTS:
+ *    -   File* file: pointer to the file object from which the desired page will be read.
+ *    -   int PageNo: page number of the page to be read
+ *    -   Page*&: Reference to a pointer to a page object; upon successful execution, will point
+ *                to the buffer frame containing the requested page.
+ * 
+ * OUTPUTS:
+ *    -   Status: enumeration representing the status of the allocation process. Possible values:
+ *           -   OK: Successful reading of page
+ *           -   UNIXERR: Error occurred at Unix level during the reading process
+ *           -   BUFFEREXCEEDED: all buffer frames currently pinned (no buffer frame available)
+ *           -   HASHTBLERROR: error occurred while inserting or looking up an entry in hash table
+ */
 const Status BufMgr::readPage(File* file, const int PageNo, Page*& page)
 {
+    // Check if page in buffer pool and handle both posible cases
+    int frameNo;
+    hashTable->lookup(file, PageNo, frameNo);
 
+    // Case 1: Page not in buffer pool
+    if(frameNo == HASHNOTFOUND) {
+        // Allocate buffer frame for new page in buffer pool
+        Status status = allocBuf(frameNo);
+        if(status != OK) { // Check allocation and return error if present
+            return status;
+        }
 
+        // Read page from disk into newly allocated buffer pool frame
+        file->readPage(PageNo, &bufPool[frameNo]);
 
+        // Insert entry into hash table
+        status = hashTable->insert(file, PageNo, frameNo);
+        if(status != OK) { // Check insertion and handle error if present
+            // Release allocated buffer frame
+            releaseBuf(frameNo);
+            // Return error status
+            return status;
+        }
 
+        // Invoke Set() to set up frame
+        bufTable[frameNo].Set(file, PageNo);
 
+        // Set page pointer to the allocated buffer frame for the page
+        page = &bufPool[frameNo];
+    }
+
+    // Case 2: Page in buffer pool
+    else {
+        bufTable[frameNo].refbit = true; // Set reference bit for page
+        bufTable[frameNo].pinCnt++; // Increment pin count for page
+
+        // Set page pointer to the allocated buffer frame for the page
+        page = &bufPool[frameNo];
+    }
+
+    return OK;
 }
 
 
 const Status BufMgr::unPinPage(File* file, const int PageNo, 
 			       const bool dirty) 
 {
+
 
 
 
