@@ -62,14 +62,88 @@ BufMgr::~BufMgr() {
     delete [] bufPool;
 }
 
-
+/* Function responsible for allocating a free frame using the clock algorithm.
+ * If the frame has been written to in the buffer, this function is also responsible
+ * for writing the changed page back to disk. 
+ * 
+ * INPUTS:
+ *    -   int & frame: object used to assign the found free frame
+ * 
+ * OUTPUTS:
+ *    -   Status: enumeration representing the status of the allocation process. Possible values:
+ *           -   OK: Successful reading of page
+ *           -   UNIXERR: Error occurred while a dirty page was begin written to disk
+ *           -   BUFFEREXCEEDED: all buffer frames currently pinned (no buffer frame available)
+ */
 const Status BufMgr::allocBuf(int & frame) 
 {
+    // keep track of how many frames we have visited
+    int framesVisited = 0;
 
+    // true when we can have a valid frame
+    bool setFrame = false;
 
+    // default return value
+    Status retVal = OK;
 
+    while(framesVisited < numBufs*2 && !setFrame){
+        //move clockhand to next frame
+        advanceClock();
 
+        framesVisited++;
 
+        //check valid set
+        if(bufTable[clockHand].valid == false){
+            // invoke set on frame
+            setFrame = true;
+        }
+        else{
+            //there was a valid set, check refbit
+            if(bufTable[clockHand].refbit){
+                bufStats.accesses++;
+
+                //clear refbit
+                bufTable[clockHand].refbit = false;
+            }
+            //not a refbit
+            else{
+                //check if page pinned
+                if(bufTable[clockHand].pinCnt == 0){
+                    //page is not pinned
+
+                    //remove from hashTable
+                    hashTable->remove(bufTable[clockHand].file, bufTable[clockHand].pageNo);
+
+                    //invoke set on frame
+                    setFrame = true;
+
+                }
+            }
+        }
+
+    }
+
+    //check if buffer pool is full
+    if(framesVisited >= numBufs*2 && setFrame == false){
+        return BUFFEREXCEEDED;
+    }
+
+    //available frame found, set frame
+    if(bufTable[clockHand].dirty){
+        bufStats.diskwrites++;
+
+        Status insertReturn = bufTable[clockHand].file->writePage(bufTable[clockHand].pageNo,
+                                                     &bufPool[clockHand]);
+
+        if(insertReturn != OK){
+            return insertReturn; 
+        }
+    }
+
+    //set available frame
+    frame = clockHand;
+
+    return retVal; 
 
 }
 
