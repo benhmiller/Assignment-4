@@ -80,7 +80,7 @@ const Status BufMgr::allocBuf(int & frame)
     // keep track of how many frames we have visited
     int framesVisited = 0;
 
-    // true when we can have a valid frame
+    // true when we can have a frame we can use
     bool setFrame = false;
 
     // default return value
@@ -110,7 +110,6 @@ const Status BufMgr::allocBuf(int & frame)
                 //check if page pinned
                 if(bufTable[clockHand].pinCnt == 0){
                     //page is not pinned
-
                     //remove from hashTable
                     hashTable->remove(bufTable[clockHand].file, bufTable[clockHand].pageNo);
 
@@ -132,6 +131,7 @@ const Status BufMgr::allocBuf(int & frame)
     if(bufTable[clockHand].dirty){
         bufStats.diskwrites++;
 
+        //write the page changes back
         Status insertReturn = bufTable[clockHand].file->writePage(bufTable[clockHand].pageNo,
                                                      &bufPool[clockHand]);
 
@@ -169,10 +169,12 @@ const Status BufMgr::readPage(File* file, const int PageNo, Page*& page)
 {
     // Check if page in buffer pool and handle both posible cases
     int frameNo;
-    hashTable->lookup(file, PageNo, frameNo);
+
+    //check for error status
+    Status hashFound = hashTable->lookup(file, PageNo, frameNo);
 
     // Case 1: Page not in buffer pool
-    if(frameNo == HASHNOTFOUND) {
+    if(hashFound == HASHNOTFOUND) {
         // Allocate buffer frame for new page in buffer pool
         Status status = allocBuf(frameNo);
         if(status != OK) { // Check allocation and return error if present
@@ -180,7 +182,10 @@ const Status BufMgr::readPage(File* file, const int PageNo, Page*& page)
         }
 
         // Read page from disk into newly allocated buffer pool frame
-        file->readPage(PageNo, &bufPool[frameNo]);
+        status = file->readPage(PageNo, &bufPool[frameNo]);
+        if(status != OK){
+            return status; 
+        }
 
         // Insert entry into hash table
         status = hashTable->insert(file, PageNo, frameNo);
