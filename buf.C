@@ -245,7 +245,7 @@ const Status BufMgr::unPinPage(File* file, const int PageNo,
         }
         else{
             if(dirty){
-                bufTable[dirty] = true;
+                bufTable[frameNo].dirty = true;
             }
             bufTable[frameNo].pinCnt--;
             return OK;

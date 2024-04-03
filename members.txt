@@ -1,0 +1,12 @@
+Benjamin Lukas:
+    unPinPage
+    Bug fixes
+
+Blake Martin:
+    allocBuf
+
+Ben Miller:
+    allocPage
+    readPage
+
+
