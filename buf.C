@@ -1,3 +1,9 @@
+/*
+* Names: Benjamin Lukas, Blake Martin, Ben Miller
+*
+*/
+
+
 #include <memory.h>
 #include <unistd.h>
 #include <errno.h>
@@ -86,51 +92,49 @@ const Status BufMgr::allocBuf(int & frame)
     // default return value
     Status retVal = OK;
 
+    // check each frame, if all frames had reference
+    // bits set check each frame again to see if 
+    // we can use a frame. Stop if we have found a frame
+    // we can use or we have already checked each frame twice. 
     while(framesVisited < numBufs*2 && !setFrame){
         //move clockhand to next frame
         advanceClock();
-
         framesVisited++;
 
-        //check valid set
+        //not a valid set
         if(bufTable[clockHand].valid == false){
-            // invoke set on frame
+            //we can use this frame
             setFrame = true;
         }
+        //valid set
         else{
-            //there was a valid set, check refbit
+            //refbit set
             if(bufTable[clockHand].refbit){
-                bufStats.accesses++;
-
                 //clear refbit
                 bufTable[clockHand].refbit = false;
             }
-            //not a refbit
+            //no refbit set
             else{
-                //check if page pinned
+                //page is not pinned
                 if(bufTable[clockHand].pinCnt == 0){
-                    //page is not pinned
                     //remove from hashTable
                     hashTable->remove(bufTable[clockHand].file, bufTable[clockHand].pageNo);
 
-                    //invoke set on frame
+                    //we can use this frame
                     setFrame = true;
-
                 }
             }
         }
 
     }
 
-    //check if buffer pool is full
-    if(framesVisited >= numBufs*2 && setFrame == false){
+    //we could not find a frame, buffer exceeded
+    if(setFrame == false){
         return BUFFEREXCEEDED;
     }
 
     //available frame found, set frame
     if(bufTable[clockHand].dirty){
-        bufStats.diskwrites++;
-
         //write the page changes back
         Status insertReturn = bufTable[clockHand].file->writePage(bufTable[clockHand].pageNo,
                                                      &bufPool[clockHand]);
