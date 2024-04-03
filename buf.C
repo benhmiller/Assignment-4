@@ -220,13 +220,38 @@ const Status BufMgr::readPage(File* file, const int PageNo, Page*& page)
 }
 
 
+/*
+//
+// Decrements the pinCnt of the frame containing (file, PageNo) and, if dirty == true, sets the dirty bit.  
+// Returns OK if no errors occurred, HASHNOTFOUND if the page is not in the buffer pool hash table, 
+// PAGENOTPINNED if the pin count is already 0.
+//
+*/
 const Status BufMgr::unPinPage(File* file, const int PageNo, 
 			       const bool dirty) 
 {
 
+    int frameNo;
 
+    Status hashFound = hashTable->lookup(file, PageNo, frameNo);
 
+    if(hashFound == HASHNOTFOUND) {
+        // frame not found in the hash table
+        return HASHNOTFOUND;
+    }
+    else{
+        if(bufTable[frameNo].pinCnt < 1){
+            return PAGENOTPINNED;
+        }
+        else{
+            if(dirty){
+                bufTable[dirty] = true;
+            }
+            bufTable[frameNo].pinCnt--;
+            return OK;
+        }
 
+    }
 
 
 }
