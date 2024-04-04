@@ -3,7 +3,7 @@
 *
 * Names: Benjamin Lukas, Blake Martin, Ben Miller
 *
-* Blake Martin - 908 199 2142
+*Blake Martin - 908 199 2142
 *
 *
 * The buffer manager holds certain pages from a disk 
@@ -130,7 +130,7 @@ const Status BufMgr::allocBuf(int & frame)
                     //available frame found, clear if page was dirty
                     if(bufTable[clockHand].dirty){
                         //remove page
-                        flushFile(bufTable[clockhand].file);
+                        flushFile(bufTable[clockHand].file);
                     }
 
                     //we can use this frame
