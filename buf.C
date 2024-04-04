@@ -1,6 +1,15 @@
 /*
+* Names & Student IDs
+*
 * Names: Benjamin Lukas, Blake Martin, Ben Miller
 *
+* Blake Martin - 908 199 2142
+*
+*
+* The buffer manager holds certain pages from a disk 
+* in memory to help access times. This buffer utilizes the
+* clock algorithm which helps determine when a page gets
+* gets to be kept in memory instead of on disk. 
 */
 
 
@@ -89,9 +98,6 @@ const Status BufMgr::allocBuf(int & frame)
     // true when we can have a frame we can use
     bool setFrame = false;
 
-    // default return value
-    Status retVal = OK;
-
     // check each frame, if all frames had reference
     // bits set check each frame again to see if 
     // we can use a frame. Stop if we have found a frame
@@ -105,6 +111,7 @@ const Status BufMgr::allocBuf(int & frame)
         if(bufTable[clockHand].valid == false){
             //we can use this frame
             setFrame = true;
+            frame = clockHand;
         }
         //valid set
         else{
@@ -120,8 +127,15 @@ const Status BufMgr::allocBuf(int & frame)
                     //remove from hashTable
                     hashTable->remove(bufTable[clockHand].file, bufTable[clockHand].pageNo);
 
+                    //available frame found, clear if page was dirty
+                    if(bufTable[clockHand].dirty){
+                        //remove page
+                        flushFile(bufTable[clockhand].file);
+                    }
+
                     //we can use this frame
                     setFrame = true;
+                    frame = clockHand;
                 }
             }
         }
@@ -133,21 +147,7 @@ const Status BufMgr::allocBuf(int & frame)
         return BUFFEREXCEEDED;
     }
 
-    //available frame found, set frame
-    if(bufTable[clockHand].dirty){
-        //write the page changes back
-        Status insertReturn = bufTable[clockHand].file->writePage(bufTable[clockHand].pageNo,
-                                                     &bufPool[clockHand]);
-
-        if(insertReturn != OK){
-            return insertReturn; 
-        }
-    }
-
-    //set available frame
-    frame = clockHand;
-
-    return retVal; 
+    return OK; 
 
 }
 
